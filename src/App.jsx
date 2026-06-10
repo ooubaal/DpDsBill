@@ -70,9 +70,13 @@ export default function App() {
             setSyncStatus('synced');
             // Auto sync download once connected
             triggerSyncDownload();
+          } else {
+            setSyncStatus('disconnected');
           }
         } catch (e) {
-          console.warn('MSAL silent login failed on startup', e);
+          console.error('MSAL silent login failed on startup', e);
+          setErrorMsg(`การเชื่อมต่อระบบบัญชีล้มเหลว: ${e.message}`);
+          setSyncStatus('disconnected');
         }
       }
     };

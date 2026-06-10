@@ -65,17 +65,22 @@ async function getMsalInstance() {
 
   msalInstance = new PublicClientApplication(msalConfig);
   await msalInstance.initialize();
-  await msalInstance.handleRedirectPromise();
+  const redirectResult = await msalInstance.handleRedirectPromise();
+  if (redirectResult && redirectResult.account) {
+    msalInstance.setActiveAccount(redirectResult.account);
+  } else {
+    // If we already have accounts in cache, make the first one active
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0 && !msalInstance.getActiveAccount()) {
+      msalInstance.setActiveAccount(accounts[0]);
+    }
+  }
   return msalInstance;
 }
 
 // Retrieve active account
 function getActiveAccount(msal) {
-  const accounts = msal.getAllAccounts();
-  if (accounts.length === 0) {
-    return null;
-  }
-  return accounts[0];
+  return msal.getActiveAccount() || (msal.getAllAccounts().length > 0 ? msal.getAllAccounts()[0] : null);
 }
 
 // Authentication Service Exports
@@ -86,9 +91,8 @@ export async function login() {
       scopes: ['user.read', 'Files.ReadWrite'],
       prompt: 'select_account'
     };
-    const response = await msal.loginPopup(loginRequest);
-    msal.setActiveAccount(response.account);
-    return response.account;
+    // Use Redirect flow for maximum reliability on both PC and Mobile
+    await msal.loginRedirect(loginRequest);
   } catch (error) {
     console.error('MSAL Login Error:', error);
     throw error;
@@ -99,7 +103,7 @@ export async function logout() {
   const msal = await getMsalInstance();
   const account = getActiveAccount(msal);
   if (account) {
-    await msal.logoutPopup({
+    await msal.logoutRedirect({
       account: account,
       postLogoutRedirectUri: getSavedRedirectUri()
     });
@@ -109,13 +113,9 @@ export async function logout() {
 }
 
 export async function getCurrentUser() {
-  try {
-    const msal = await getMsalInstance();
-    const account = getActiveAccount(msal);
-    return account;
-  } catch (e) {
-    return null;
-  }
+  const msal = await getMsalInstance();
+  const account = getActiveAccount(msal);
+  return account;
 }
 
 // Get Token Silently (or via popup if needed)
