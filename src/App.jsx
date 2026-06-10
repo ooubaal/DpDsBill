@@ -122,7 +122,8 @@ export default function App() {
   };
 
   const triggerSyncDownload = async () => {
-    if (!currentUser) return;
+    const activeUser = await onedrive.getCurrentUser();
+    if (!activeUser) return;
     setSyncStatus('syncing');
     try {
       const remoteDb = await onedrive.downloadDatabase();
@@ -147,7 +148,8 @@ export default function App() {
   };
 
   const triggerSyncUpload = async () => {
-    if (!currentUser) return;
+    const activeUser = await onedrive.getCurrentUser();
+    if (!activeUser) return;
     setSyncStatus('syncing');
     try {
       await onedrive.uploadDatabase(dbService.getDb());
