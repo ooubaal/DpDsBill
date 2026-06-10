@@ -116,19 +116,17 @@ export default function App() {
 
   // OneDrive Synchronize Actions
   const handleConnectOneDrive = async () => {
+    console.log('[App] handleConnectOneDrive clicked. ClientID:', azureClientId, 'RedirectURI:', redirectUri);
     if (!azureClientId) {
       alert('กรุณากรอก Azure Client ID ก่อนเชื่อมต่อ');
       return;
     }
     setErrorMsg('');
     try {
+      console.log('[App] Saving sync settings...');
       onedrive.saveSyncSettings(azureClientId, redirectUri);
-      const user = await onedrive.login();
-      setCurrentUser(user);
-      setSyncStatus('syncing');
-      
-      // Perform initial merge
-      await triggerSyncDownload();
+      console.log('[App] Initiating onedrive.login()...');
+      await onedrive.login(); // This redirects the page!
     } catch (e) {
       console.error(e);
       setErrorMsg(`เชื่อมต่อล้มเหลว: ${e.message}`);
