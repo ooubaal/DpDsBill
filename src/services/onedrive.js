@@ -65,6 +65,7 @@ async function getMsalInstance() {
 
   msalInstance = new PublicClientApplication(msalConfig);
   await msalInstance.initialize();
+  await msalInstance.handleRedirectPromise();
   return msalInstance;
 }
 
