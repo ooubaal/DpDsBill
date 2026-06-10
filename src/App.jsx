@@ -3,6 +3,26 @@ import { dbService } from './services/db';
 import * as onedrive from './services/onedrive';
 import { DocumentPrint } from './components/DocumentPrint';
 
+// Intercept console logs for UI diagnostic reports
+const debugLogs = [];
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.log = (...args) => {
+  debugLogs.push(`[LOG] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')}`);
+  originalLog.apply(console, args);
+};
+console.error = (...args) => {
+  debugLogs.push(`[ERROR] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')}`);
+  originalError.apply(console, args);
+};
+console.warn = (...args) => {
+  debugLogs.push(`[WARN] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')}`);
+  originalWarn.apply(console, args);
+};
+
+
 // Custom inline SVG icons for visual premium look without adding extra npm packages
 const Icons = {
   Dashboard: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="5" /><rect x="14" y="12" width="7" height="9" /><rect x="3" y="16" width="7" height="5" /></svg>,
@@ -39,6 +59,7 @@ export default function App() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingDoc, setEditingDoc] = useState(null); // Document Editor structure
   const [previewingDoc, setPreviewingDoc] = useState(null); // Print Preview modal document
+  const [showLogsModal, setShowLogsModal] = useState(false);
 
   // UI Filter lists
   const [docFilterType, setDocFilterType] = useState('all');
@@ -1207,18 +1228,26 @@ export default function App() {
                 </span>
               </div>
 
-              <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
-                {currentUser ? (
-                  <>
+              <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  {currentUser ? (
                     <button className="btn btn-danger" style={{ flexGrow: 1 }} onClick={handleDisconnectOneDrive}>
                       {Icons.Close()} ออกจากระบบ OneDrive
                     </button>
-                  </>
-                ) : (
-                  <button className="btn btn-primary" style={{ flexGrow: 1 }} onClick={handleConnectOneDrive}>
-                    {Icons.Sync()} เชื่อมต่อ & ซิงก์ข้อมูล
-                  </button>
-                )}
+                  ) : (
+                    <button className="btn btn-primary" style={{ flexGrow: 1 }} onClick={handleConnectOneDrive}>
+                      {Icons.Sync()} เชื่อมต่อ & ซิงก์ข้อมูล
+                    </button>
+                  )}
+                </div>
+                <button 
+                  type="button"
+                  className="btn btn-secondary" 
+                  style={{ width: '100%' }}
+                  onClick={() => setShowLogsModal(true)}
+                >
+                  {Icons.Document()} ดูรายงานระบบ (Debug Logs)
+                </button>
               </div>
 
               <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border-glass)', fontSize: '0.8rem' }}>
@@ -1645,6 +1674,27 @@ export default function App() {
               {/* Printable Component Renders Here */}
               <div style={{ background: 'white', borderRadius: '4px', overflow: 'hidden' }}>
                 <DocumentPrint document={previewingDoc} companyProfile={db.companyProfile} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= MODAL: DEBUG LOGS ================= */}
+        {showLogsModal && (
+          <div className="modal-overlay">
+            <div className="modal-content glass-card" style={{ maxWidth: '800px' }}>
+              <div style={{ display: 'flex', justify: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h2>รายงานระบบ (Debug Logs)</h2>
+                <button className="btn btn-secondary btn-icon-only" onClick={() => setShowLogsModal(false)}>{Icons.Close()}</button>
+              </div>
+              <textarea 
+                readOnly
+                rows="15"
+                style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem', padding: '10px', background: 'black', color: '#10b981', border: '1px solid var(--border-glass)', borderRadius: '8px' }}
+                value={debugLogs.join('\n')}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button className="btn btn-primary" onClick={() => setShowLogsModal(false)}>ปิดหน้าต่าง</button>
               </div>
             </div>
           </div>
